@@ -1,51 +1,66 @@
-import { useState, useEffect, useRef } from "react";
-import mapboxgl from "mapbox-gl";
-import "mapbox-gl/dist/mapbox-gl.css";
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Tempo Trail</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    body { margin: 0; font-family: sans-serif; background-color: #0C0C0C; color: white; }
+    .rounded-xl { border-radius: 0.75rem; }
+    .border { border-width: 1px; border-style: solid; }
+    .text-white { color: white; }
+    .text-center { text-align: center; }
+    .text-xl { font-size: 1.25rem; }
+    .text-2xl { font-size: 1.5rem; }
+    .text-lg { font-size: 1.125rem; }
+    .font-bold { font-weight: bold; }
+    .font-medium { font-weight: 500; }
+    .leading-tight { line-height: 1.25; }
+    .p-4 { padding: 1rem; }
+    .ml-4 { margin-left: 1rem; }
+    .space-y-4 > * + * { margin-top: 1rem; }
+    .w-full { width: 100%; }
+    .w-1\/2 { width: 50%; }
+    .h-full { height: 100%; }
+    .h-12 { height: 3rem; }
+    .min-h-screen { min-height: 100vh; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-4 { gap: 1rem; }
+    .relative { position: relative; }
+    .absolute { position: absolute; }
+    .top-1\/2 { top: 50%; }
+    .left-0 { left: 0; }
+    .transform { transform: translateY(-50%); }
+    .overflow-hidden { overflow: hidden; }
+    .object-cover { object-fit: cover; }
+    .text-teal { color: #00FFE0; }
+    .border-teal { border-color: #00FFE0; }
+    .bg-dark { background-color: #0C0C0C; }
+    .h-180 { height: 180px; }
+    .h-240 { height: 240px; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script type="text/babel">
+
+const { useState, useEffect, useRef } = React;
 
 const sampleEvents = [
-  {
-    id: 1,
-    name: "Pulse Club",
-    time: "10:30 PM",
-    trail: "Neon Nights",
-    coordinates: [-87.624, 41.891]
-  },
-  {
-    id: 2,
-    name: "Orbit Lounge",
-    time: "11:00 PM",
-    trail: "Neon Nights",
-    coordinates: [-87.628, 41.892]
-  },
-  {
-    id: 3,
-    name: "Terminal X",
-    time: "11:45 PM",
-    trail: "Neon Nights",
-    coordinates: [-87.63, 41.894]
-  }
+  { id: 1, name: "Pulse Club", time: "10:30 PM", trail: "Neon Nights", coordinates: [41.891, -87.624], location: "123 Main St", artists: ["DJ Neon", "Bassline Benny"] },
+  { id: 2, name: "Orbit Lounge", time: "11:00 PM", trail: "Neon Nights", coordinates: [41.892, -87.628], location: "456 Cosmic Ave", artists: ["Luna Loop", "Echo Mike"] },
+  { id: 3, name: "Terminal X", time: "11:45 PM", trail: "Neon Nights", coordinates: [41.894, -87.63], location: "789 Terminal Rd", artists: ["Terminal Tom", "Jetset Jenna"] }
 ];
 
-const trailPoints = [
-  {
-    id: 1,
-    name: "Start - Night Gate",
-    coordinates: [-87.6202, 41.8885]
-  },
-  {
-    id: 2,
-    name: "Midpoint - Violet Bar",
-    coordinates: [-87.6225, 41.8892]
-  },
-  {
-    id: 3,
-    name: "End - Electric Finish",
-    coordinates: [-87.625, 41.8903]
-  }
-];
-
-const MAPBOX_TOKEN = "pk.eyJ1IjoiamFtZWVsYWs5MyIsImEiOiJja3luZ29hc2MwcDU2MnBycHg3NHprdmVuIn0.-CLDo6kpsFt7k7QzIPvHJQ";
-mapboxgl.accessToken = MAPBOX_TOKEN;
 const LOADING_GIF = "https://upload.wikimedia.org/wikipedia/commons/b/b1/Loading_icon.gif";
 const IMAGE_API = "https://prod-44.westus.logic.azure.com:443/workflows/bae271e6ed5b4cd39b21011746a58ab1/triggers/manual/paths/invoke?api-version=2016-06-01&sp=%2Ftriggers%2Fmanual%2Frun&sv=1.0&sig=jVCUiSPAD3i7Ub1Z6KPf5TjW5PJXFWlz8EFn8lltEHg";
 
@@ -55,113 +70,115 @@ function InlineMap({ pins, focus }) {
 
   useEffect(() => {
     if (mapRef.current) return;
-    const map = new mapboxgl.Map({
-      container: mapContainer.current,
-      style: "mapbox://styles/mapbox/streets-v11",
-      center: focus?.coordinates || [-87.623, 41.889],
-      zoom: 15,
-      pitch: 45,
-      bearing: -17,
-      antialias: true
+
+    const map = L.map(mapContainer.current).setView(focus?.coordinates || [41.889, -87.623], 16);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    pins.forEach(p => {
+      L.marker(p.coordinates, {
+        icon: L.icon({
+          iconUrl: focus && focus.id === p.id ? "https://maps.gstatic.com/mapfiles/ms2/micons/yellow-dot.png" : "https://maps.gstatic.com/mapfiles/ms2/micons/blue-dot.png",
+          iconSize: [30, 30]
+        })
+      }).addTo(map);
     });
+
     mapRef.current = map;
-    map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
     return () => {
       map.remove();
       mapRef.current = null;
     };
-  }, []);
-
-  // Handle pins and focus updates
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-
-    // Remove old markers
-    if (map._markers) {
-      map._markers.forEach(m => m.remove());
-    }
-    // Add new markers
-    map._markers = pins.map(p =>
-      new mapboxgl.Marker({ color: (focus && focus.id === p.id) ? "#FF0" : "#00FFE0" })
-        .setLngLat(p.coordinates)
-        .addTo(map)
-    );
-    if (focus) {
-      map.flyTo({ center: focus.coordinates, zoom: 16 });
-    }
   }, [pins, focus]);
 
-  return <div ref={mapContainer} className="w-full h-[260px] rounded-xl overflow-hidden border border-[#00FFE0] mb-2" />;
+  return <div ref={mapContainer} className="w-full h-180 rounded-xl overflow-hidden border border-teal" />;
 }
 
-export default function TempoScapeMobile() {
-  const [activeTab, setActiveTab] = useState("events"); // or "trails"
+function TempoScapeMobile() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imageSrc, setImageSrc] = useState(LOADING_GIF);
   const [isLoading, setIsLoading] = useState(true);
+  const focusEvent = sampleEvents[currentIndex];
 
-  // Dynamic data based on tab
-  const data = activeTab === "events" ? sampleEvents : trailPoints;
-  const focusItem = data[currentIndex];
-
-  // Fetch image via GET with ?id=
   useEffect(() => {
     let ignore = false;
-    async function fetchPoster() {
+    async function fetchImage() {
       setIsLoading(true);
       setImageSrc(LOADING_GIF);
       try {
-        const res = await fetch(`${IMAGE_API}&id=${focusItem.id}`);
-        if (!res.ok) throw new Error("API failed: " + res.status);
-        const data = await res.json();
-        if (data.url && data.url.startsWith("http")) {
-          if (!ignore) setImageSrc(data.url);
+        const res = await fetch(IMAGE_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: focusEvent.id })
+        });
+        const data = await res.text();
+        if (!ignore && data.startsWith("http")) {
+          setImageSrc(data);
         } else {
-          if (!ignore) setImageSrc(LOADING_GIF);
+          setImageSrc(LOADING_GIF);
         }
-      } catch (e) {
+      } catch {
         if (!ignore) setImageSrc(LOADING_GIF);
       } finally {
         if (!ignore) setIsLoading(false);
       }
     }
-    if (focusItem && focusItem.id) fetchPoster();
+    if (focusEvent && focusEvent.id) fetchImage();
     return () => { ignore = true; };
-  }, [focusItem]);
+  }, [focusEvent]);
 
-  // Card navigation
-  const handleSwipe = (direction) => {
+  const handleSwipe = (dir) => {
     setCurrentIndex(prev => {
-      let newIndex = direction === "left" ? prev + 1 : prev - 1;
-      if (newIndex < 0) newIndex = data.length - 1;
-      if (newIndex >= data.length) newIndex = 0;
+      let newIndex = dir === "left" ? prev + 1 : prev - 1;
+      if (newIndex < 0) newIndex = sampleEvents.length - 1;
+      if (newIndex >= sampleEvents.length) newIndex = 0;
       return newIndex;
     });
   };
 
   return (
-    <div className="bg-[#0C0C0C] min-h-screen text-white font-sans flex flex-col p-2">
-      <div className="text-center text-3xl font-bold text-[#00FFE0] mb-2">TEMPO TRAILS</div>
-      <div className="flex justify-center mb-2">
-        <button onClick={() => { setActiveTab("events"); setCurrentIndex(0); }}>Events</button>
-        <button onClick={() => { setActiveTab("trails"); setCurrentIndex(0); }} className="ml-4">Trails</button>
+    <div className="bg-dark min-h-screen text-white font-sans flex flex-col items-center p-4 space-y-4">
+      <div className="text-2xl font-bold text-teal">TEMPO TRAILS</div>
+      <div className="flex w-full gap-4">
+        <div className="flex flex-col gap-4 w-1/2">
+          <div className="border border-teal rounded-xl p-4 text-left">
+            <div className="text-teal font-medium text-sm">Location</div>
+            <div className="text-white text-xl font-bold leading-tight">{focusEvent?.location}</div>
+          </div>
+          <div className="border border-teal rounded-xl p-4 text-left">
+            <div className="text-teal font-medium text-sm">ARTISTS</div>
+            <ul className="list-disc ml-4 text-base">
+              {focusEvent?.artists?.map((artist, idx) => (
+                <li key={idx}>{artist}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <div className="w-1/2">
+          <InlineMap pins={sampleEvents} focus={focusEvent} />
+        </div>
       </div>
-      <InlineMap pins={data} focus={focusItem} />
-      <div className="relative h-[340px] w-full border border-[#00FFE0] rounded-xl overflow-hidden">
-        <img
-          src={imageSrc}
-          alt="Event Poster"
-          className="object-cover w-full h-full"
-          style={{ minHeight: 300, background: "#222" }}
-        />
-        <div className="absolute top-1/2 left-0 transform -translate-y-1/2 w-full flex justify-between px-4">
+      <div className="relative w-full h-240 border border-teal rounded-xl overflow-hidden">
+        {isLoading ? (
+          <div className="h-full flex items-center justify-center text-teal">
+            <img src={LOADING_GIF} className="w-12 h-12" alt="Loading..." />
+          </div>
+        ) : (
+          <img key={imageSrc} src={imageSrc} alt="Event Poster" className="object-cover w-full h-full" />
+        )}
+        <div className="absolute top-1/2 left-0 transform w-full flex justify-between px-4">
           <button onClick={() => handleSwipe("right")} className="text-4xl text-white">←</button>
           <button onClick={() => handleSwipe("left")} className="text-4xl text-white">→</button>
         </div>
       </div>
-      <div className="text-center mt-2 text-lg">{focusItem?.name}</div>
-      <div className="text-center text-sm text-[#B4FFD2]">{focusItem?.time || ""}</div>
+      <div className="text-center text-xl font-semibold">{focusEvent?.name}</div>
+      <div className="text-center text-teal text-lg">{focusEvent?.time}</div>
     </div>
   );
 }
+
+ReactDOM.createRoot(document.getElementById("root")).render(<TempoScapeMobile />);
+  </script>
+</body>
+</html>
